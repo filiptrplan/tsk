@@ -42,37 +42,20 @@ struct List {
     next_id: u16,
 }
 
-impl List {
-    /// Parses list from markdown
-    pub fn parse_from_md(raw_md_text: &str) -> anyhow::Result<Self> {
-        let skip_line = terminated(take_till(|c| c == '\n'), alt((line_ending, eof)));
-        let parse_line = alt((
-            map(List::parse_line_to_task, |x: Task| {
-                println!("task!");
-                Some(x)
-            }),
-            map(skip_line, |_| {
-                println!("None!");
-                None
-            }),
-        ));
-        let parse_result = many_till(parse_line, eof).parse(raw_md_text);
-        match parse_result {
-            Err(e) => {
-                println!("{:?}", e);
-                Err(anyhow::format_err!("Parsing of file failed!"))
-            }
-            Ok((_, (results, _))) => {
-                let task_vec = results.into_iter().flatten().collect();
-                Ok(List {
-                    tasks: task_vec,
-                    next_id: 1,
-                })
-            }
-        }
+impl Task {
+    fn save_to_md(&self) -> String {
+        let status_str = match self.status {
+            Status::Todo => " ",
+            Status::Done => "x",
+        };
+        let id_str = match self.parent_id {
+            None => self.id.to_string(),
+            Some(parent_id) => format!("{}/{}", parent_id, self.id),
+        };
+        format!(" - [{}] {}: {}", status_str, id_str, self.name)
     }
 
-    fn parse_line_to_task(input: &str) -> IResult<&str, Task> {
+    fn parse_line_to_task(input: &str) -> IResult<&str, Self> {
         let (rem, _) = space0.parse(input)?;
         let (rem, (_, status, _)) =
             tuple((tag("- ["), alt((tag(" "), tag("x"))), tag("]"))).parse(rem)?;
@@ -110,11 +93,46 @@ impl List {
             },
         ))
     }
+}
+
+impl List {
+    /// Parses list from markdown
+    pub fn parse_from_md(raw_md_text: &str) -> anyhow::Result<Self> {
+        let skip_line = terminated(take_till(|c| c == '\n'), alt((line_ending, eof)));
+        let parse_line = alt((
+            map(Task::parse_line_to_task, |x: Task| {
+                println!("task!");
+                Some(x)
+            }),
+            map(skip_line, |_| {
+                println!("None!");
+                None
+            }),
+        ));
+        let parse_result = many_till(parse_line, eof).parse(raw_md_text);
+        match parse_result {
+            Err(e) => {
+                println!("{:?}", e);
+                Err(anyhow::format_err!("Parsing of file failed!"))
+            }
+            Ok((_, (results, _))) => {
+                let task_vec = results.into_iter().flatten().collect();
+                Ok(List {
+                    tasks: task_vec,
+                    next_id: 1,
+                })
+            }
+        }
+    }
 
     /// Outputs a markdown file with an optional "original" where it modifies what needs to be
     /// modified
     fn save_to_md(&self) -> String {
-        unimplemented!()
+        self.tasks
+            .iter()
+            .map(|x| x.save_to_md())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 
     fn new() -> Self {
