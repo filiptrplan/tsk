@@ -1,10 +1,10 @@
 use nom::{
     IResult, Parser,
     branch::alt,
-    bytes::{complete::is_not, tag},
+    bytes::{complete::is_not, tag, take_till},
     character::complete::{anychar, digit1, line_ending, newline, space0},
-    combinator::{eof, opt, recognize},
-    multi::many_till,
+    combinator::{eof, map, opt, recognize},
+    multi::{many_till, many0},
     sequence::{delimited, preceded, separated_pair, terminated, tuple},
 };
 
@@ -35,6 +35,7 @@ struct TaskPatch {
 }
 
 /// The whole task list contained in TSK.md
+#[derive(Debug)]
 struct List {
     /// All tasks
     tasks: Vec<Task>,
@@ -43,20 +44,38 @@ struct List {
 
 impl List {
     /// Parses list from markdown
-    pub fn parse_from_md(raw_md_text: &str) -> Self {
-        let lines = raw_md_text.split("\n");
-
-        unimplemented!()
+    pub fn parse_from_md(raw_md_text: &str) -> anyhow::Result<Self> {
+        let skip_line = terminated(take_till(|c| c == '\n'), alt((line_ending, eof)));
+        let parse_line = alt((
+            map(List::parse_line_to_task, |x: Task| {
+                println!("task!");
+                Some(x)
+            }),
+            map(skip_line, |_| {
+                println!("None!");
+                None
+            }),
+        ));
+        let parse_result = many_till(parse_line, eof).parse(raw_md_text);
+        match parse_result {
+            Err(e) => {
+                println!("{:?}", e);
+                Err(anyhow::format_err!("Parsing of file failed!"))
+            }
+            Ok((_, (results, _))) => {
+                let task_vec = results.into_iter().flatten().collect();
+                Ok(List {
+                    tasks: task_vec,
+                    next_id: 1,
+                })
+            }
+        }
     }
 
     fn parse_line_to_task(input: &str) -> IResult<&str, Task> {
         let (rem, _) = space0.parse(input)?;
         let (rem, (_, status, _)) =
             tuple((tag("- ["), alt((tag(" "), tag("x"))), tag("]"))).parse(rem)?;
-        // let id_or_parent_id = recognize(alt((
-        //     |i| separated_pair(digit1, tag("/"), digit1).parse(i),
-        //     |i| digit1.parse(i),
-        // )));
         let (rem, (first_id, second_id)) = delimited(
             space0,
             tuple((digit1, opt(preceded(tag("/"), digit1)))),
@@ -75,7 +94,7 @@ impl List {
                 parent_id = Some(first_id.parse().unwrap());
             }
         }
-        let (rem, name) = terminated(is_not("\n"), alt((line_ending, eof))).parse(rem)?;
+        let (rem, (name, _)) = many_till(anychar, alt((line_ending, eof))).parse(rem)?;
         let parsed_status = if status == " " {
             Status::Todo
         } else {
@@ -87,7 +106,7 @@ impl List {
                 status: parsed_status,
                 parent_id,
                 id: parsed_id,
-                name: name.to_owned(),
+                name: name.iter().collect(),
             },
         ))
     }

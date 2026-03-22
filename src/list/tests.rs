@@ -36,6 +36,8 @@ fn adding_task_with_invalid_parent_returns_error() {
 
 #[test]
 fn parse_simple_line() {
-    println!("{:?}", List::parse_line_to_task("- [x] 123: abc"));
-    println!("{:?}", List::parse_line_to_task("- [ ] 123/45: abc"));
+    println!(
+        "{:?}",
+        List::parse_from_md("- [x] 123: abc\n lalalald\n- [ ] 1234: abcd")
+    );
 }
