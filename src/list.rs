@@ -116,10 +116,11 @@ impl List {
                 Err(anyhow::format_err!("Parsing of file failed!"))
             }
             Ok((_, (results, _))) => {
-                let task_vec = results.into_iter().flatten().collect();
+                let task_vec: Vec<Task> = results.into_iter().flatten().collect();
+                let next_id = task_vec.iter().map(|x| x.id).max().unwrap_or(1);
                 Ok(List {
                     tasks: task_vec,
-                    next_id: 1,
+                    next_id,
                 })
             }
         }
