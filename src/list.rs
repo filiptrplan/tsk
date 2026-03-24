@@ -12,18 +12,18 @@ use nom::{
 mod tests;
 
 #[derive(Debug, Clone)]
-enum Status {
+pub enum Status {
     Todo,
     Done,
 }
 
 /// A single task with its owned children
 #[derive(Debug, Clone)]
-struct Task {
-    id: u16,
-    parent_id: Option<u16>,
-    name: String,
-    status: Status,
+pub struct Task {
+    pub id: u16,
+    pub parent_id: Option<u16>,
+    pub name: String,
+    pub status: Status,
 }
 
 #[derive(Default)]
@@ -36,7 +36,7 @@ struct TaskPatch {
 
 /// The whole task list contained in TSK.md
 #[derive(Debug)]
-struct List {
+pub struct List {
     /// All tasks
     tasks: Vec<Task>,
     next_id: u16,
@@ -127,7 +127,7 @@ impl List {
 
     /// Outputs a markdown file with an optional "original" where it modifies what needs to be
     /// modified
-    fn save_to_md(&self) -> String {
+    pub fn save_to_md(&self) -> String {
         self.tasks
             .iter()
             .map(|x| x.save_to_md())
@@ -142,7 +142,7 @@ impl List {
         }
     }
 
-    fn add_task(&mut self, name: &str, parent_id: Option<u16>) -> anyhow::Result<()> {
+    pub fn add_task(&mut self, name: &str, parent_id: Option<u16>) -> anyhow::Result<()> {
         if let Some(parent_id) = parent_id
             && !self.tasks.iter().any(|x| x.id == parent_id)
         {
@@ -174,11 +174,11 @@ impl List {
         Ok(())
     }
 
-    fn list_tasks(&self) -> &[Task] {
+    pub fn list_tasks(&self) -> &[Task] {
         &self.tasks
     }
 
-    fn modify_task(&mut self, patch: TaskPatch) -> anyhow::Result<()> {
+    pub fn modify_task(&mut self, patch: TaskPatch) -> anyhow::Result<()> {
         let task_idx = self.tasks.iter().position(|x| x.id == patch.id);
         match task_idx {
             None => {
@@ -201,7 +201,7 @@ impl List {
         Ok(())
     }
 
-    fn get_task(&self, id: u16) -> anyhow::Result<&Task> {
+    pub fn get_task(&self, id: u16) -> anyhow::Result<&Task> {
         let task = self.tasks.iter().find(|x| x.id == id);
         if task.is_none() {
             return Err(anyhow::format_err!("Task ID {} doesn't exist.", id));
