@@ -1,4 +1,8 @@
-use std::{fs::read_to_string, path::PathBuf};
+use std::io::Write;
+use std::{
+    fs::{File, read_to_string},
+    path::PathBuf,
+};
 
 use clap::{Parser, Subcommand};
 
@@ -19,7 +23,10 @@ enum Commands {
 }
 
 #[derive(clap::Args)]
-struct AddArgs {}
+struct AddArgs {
+    name: String,
+    parent: Option<u16>,
+}
 #[derive(clap::Args)]
 struct RemoveArgs {}
 #[derive(clap::Args)]
@@ -33,17 +40,26 @@ fn read_list_from_md() -> anyhow::Result<List> {
         ));
     }
     let raw_string = read_to_string(path)?;
-    Ok(List::parse_from_md(&raw_string)?)
+    List::parse_from_md(&raw_string)
+}
+
+fn save_list_to_disk(list: &List) -> anyhow::Result<()> {
+    let path = PathBuf::from("./TSK.md");
+    let mut output = File::create(path)?;
+    Ok(write!(output, "{}", list.save_to_md())?)
 }
 
 fn run_cli(command: &Commands) -> anyhow::Result<()> {
     let mut list = read_list_from_md()?;
     match command {
-        Commands::Add(add_args) => todo!(),
+        Commands::Add(add_args) => {
+            list.add_task(&add_args.name, add_args.parent)?;
+            save_list_to_disk(&list)?;
+        }
         Commands::Remove(remove_args) => todo!(),
         Commands::Modify(modify_args) => todo!(),
         Commands::List => {
-            println!("{:?}", list);
+            println!("{}", list);
         }
     }
     Ok(())

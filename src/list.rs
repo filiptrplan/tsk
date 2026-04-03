@@ -1,3 +1,8 @@
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Display,
+};
+
 use nom::{
     IResult, Parser,
     branch::alt,
@@ -95,19 +100,56 @@ impl Task {
     }
 }
 
+impl Display for List {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(core::format_args!("== Task list ==\n"))?;
+        const INDENT_SIZE: usize = 2;
+        let mut children: HashMap<u16, VecDeque<Task>> = HashMap::new();
+        let mut top_level_tasks = Vec::new();
+        for task in self.tasks.iter() {
+            if let Some(parent_id) = task.parent_id {
+                let child_vec = children.entry(parent_id).or_default();
+                child_vec.push_back(task.clone());
+            } else {
+                top_level_tasks.push(task.clone());
+            }
+        }
+
+        for tl_task in top_level_tasks {
+            let mut child_queue = children
+                .get(&tl_task.id)
+                .cloned()
+                .unwrap_or(VecDeque::new())
+                .into_iter()
+                .map(|x| (x, 1))
+                .collect::<VecDeque<_>>();
+            writeln!(f, " - {}: {}", tl_task.id, tl_task.name)?;
+            while !child_queue.is_empty() {
+                let (child, indent) = child_queue.pop_front().unwrap();
+                if let Some(vec) = children.get(&child.id) {
+                    vec.iter()
+                        .for_each(|task| child_queue.push_front((task.clone(), indent + 1)));
+                }
+                writeln!(
+                    f,
+                    "{} - {}: {}",
+                    " ".repeat(indent * INDENT_SIZE),
+                    child.id,
+                    child.name
+                )?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl List {
     /// Parses list from markdown
     pub fn parse_from_md(raw_md_text: &str) -> anyhow::Result<Self> {
         let skip_line = terminated(take_till(|c| c == '\n'), alt((line_ending, eof)));
         let parse_line = alt((
-            map(Task::parse_line_to_task, |x: Task| {
-                println!("task!");
-                Some(x)
-            }),
-            map(skip_line, |_| {
-                println!("None!");
-                None
-            }),
+            map(Task::parse_line_to_task, |x: Task| Some(x)),
+            map(skip_line, |_| None),
         ));
         let parse_result = many_till(parse_line, eof).parse(raw_md_text);
         match parse_result {
@@ -117,7 +159,12 @@ impl List {
             }
             Ok((_, (results, _))) => {
                 let task_vec: Vec<Task> = results.into_iter().flatten().collect();
-                let next_id = task_vec.iter().map(|x| x.id).max().unwrap_or(1);
+                let next_id = task_vec
+                    .iter()
+                    .map(|x| x.id)
+                    .max()
+                    .map(|x| x + 1)
+                    .unwrap_or(1);
                 Ok(List {
                     tasks: task_vec,
                     next_id,
