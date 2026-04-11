@@ -123,17 +123,26 @@ impl Display for List {
                 .into_iter()
                 .map(|x| (x, 1))
                 .collect::<VecDeque<_>>();
-            writeln!(f, " - {}: {}", tl_task.id, tl_task.name)?;
+            let status = match tl_task.status {
+                Status::Todo => " ",
+                Status::Done => "✓",
+            };
+            writeln!(f, " - [{}] {}: {}", status, tl_task.id, tl_task.name)?;
             while !child_queue.is_empty() {
                 let (child, indent) = child_queue.pop_front().unwrap();
                 if let Some(vec) = children.get(&child.id) {
                     vec.iter()
                         .for_each(|task| child_queue.push_front((task.clone(), indent + 1)));
                 }
+                let status = match child.status {
+                    Status::Todo => " ",
+                    Status::Done => "✓",
+                };
                 writeln!(
                     f,
-                    "{} - {}: {}",
+                    "{} - [{}] {}: {}",
                     " ".repeat(indent * INDENT_SIZE),
+                    status,
                     child.id,
                     child.name
                 )?;
