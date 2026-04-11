@@ -1,5 +1,4 @@
- - [ ] 1: test task
+ - [x] 1: test task
  - [ ] 1/2: task 2
- - [ ] 2/3: task 2
- - [ ] 2/4: task 4
+ - [ ] 2/3: modified
  - [ ] 1/5: task 5

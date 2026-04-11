@@ -6,7 +6,7 @@ use std::{
 
 use clap::{Parser, Subcommand};
 
-use crate::list::List;
+use crate::list::{List, Status, TaskPatch};
 
 #[derive(Parser)]
 struct Cli {
@@ -19,6 +19,8 @@ enum Commands {
     Add(AddArgs),
     Remove(RemoveArgs),
     Modify(ModifyArgs),
+    /// Marks the task as done
+    Done(DoneArgs),
     List,
 }
 
@@ -28,9 +30,23 @@ struct AddArgs {
     parent: Option<u16>,
 }
 #[derive(clap::Args)]
-struct RemoveArgs {}
+struct DoneArgs {
+    id: u16,
+}
 #[derive(clap::Args)]
-struct ModifyArgs {}
+struct RemoveArgs {
+    id: u16,
+}
+#[derive(clap::Args)]
+struct ModifyArgs {
+    id: u16,
+    #[arg(long)]
+    name: Option<String>,
+    #[arg(long)]
+    parent: Option<u16>,
+    #[arg(long)]
+    remove_parent: bool,
+}
 
 fn read_list_from_md() -> anyhow::Result<List> {
     let path = PathBuf::from("./TSK.md");
@@ -56,8 +72,41 @@ fn run_cli(command: &Commands) -> anyhow::Result<()> {
             list.add_task(&add_args.name, add_args.parent)?;
             save_list_to_disk(&list)?;
         }
-        Commands::Remove(remove_args) => todo!(),
-        Commands::Modify(modify_args) => todo!(),
+        Commands::Remove(remove_args) => {
+            let task = list.get_task(remove_args.id)?.name.clone();
+            list.remove_task(remove_args.id)?;
+            save_list_to_disk(&list)?;
+            println!("Removed task '{}'", task);
+        }
+        Commands::Modify(modify_args) => {
+            let parent = if modify_args.remove_parent {
+                Some(None)
+            } else {
+                modify_args.parent.map(Some)
+            };
+            let patch = TaskPatch {
+                id: modify_args.id,
+                parent_id: parent,
+                name: modify_args.name.clone(),
+                status: None,
+            };
+            list.modify_task(patch)?;
+            save_list_to_disk(&list)?;
+            let task = list.get_task(modify_args.id)?.name.clone();
+            println!("Modified task '{}'", task);
+        }
+        Commands::Done(done_args) => {
+            let patch = TaskPatch {
+                id: done_args.id,
+                parent_id: None,
+                name: None,
+                status: Some(Status::Done),
+            };
+            list.modify_task(patch)?;
+            save_list_to_disk(&list)?;
+            let task = list.get_task(done_args.id)?.name.clone();
+            println!("Set task as done: '{}'", task);
+        }
         Commands::List => {
             println!("{}", list);
         }

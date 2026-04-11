@@ -32,11 +32,11 @@ pub struct Task {
 }
 
 #[derive(Default)]
-struct TaskPatch {
-    id: u16,
-    parent_id: Option<Option<u16>>,
-    name: Option<String>,
-    status: Option<Status>,
+pub struct TaskPatch {
+    pub id: u16,
+    pub parent_id: Option<Option<u16>>,
+    pub name: Option<String>,
+    pub status: Option<Status>,
 }
 
 /// The whole task list contained in TSK.md
@@ -209,7 +209,7 @@ impl List {
         Ok(())
     }
 
-    fn remove_task(&mut self, id: u16) -> anyhow::Result<()> {
+    pub fn remove_task(&mut self, id: u16) -> anyhow::Result<()> {
         let task_idx = self.tasks.iter().position(|x| x.id == id);
         match task_idx {
             None => {
