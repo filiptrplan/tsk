@@ -27,7 +27,8 @@
         };
       in
       {
-        # packages.default = pkgs.callPackage ./default.nix { };
+        packages.default = pkgs.callPackage ./default.nix { };
+
         devShells.default =
           with pkgs;
           mkShell {
