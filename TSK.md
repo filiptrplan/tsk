@@ -1,4 +1,5 @@
- - [x] 1: test task
  - [ ] 1/2: task 2
  - [ ] 2/3: modified
  - [ ] 1/5: task 5
+ - [ ] 6: tui
+ - [ ] 7: add feedback to tsk add command
