@@ -1,5 +1,5 @@
- - [ ] 1/2: task 2
- - [ ] 2/3: modified
- - [ ] 1/5: task 5
  - [ ] 6: tui
  - [ ] 7: add feedback to tsk add command
+ - [ ] 8: refactor tasks display to use get_ funcs
+ - [ ] 6/9: test task
+ - [ ] 10: use the new builder functions for task patch where applicable

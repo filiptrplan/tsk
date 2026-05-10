@@ -7,6 +7,7 @@ use std::{
 use clap::{Parser, Subcommand};
 
 use crate::list::{List, Status, TaskPatch};
+use crate::tui::App;
 
 #[derive(Parser)]
 struct Cli {
@@ -48,7 +49,7 @@ struct ModifyArgs {
     remove_parent: bool,
 }
 
-fn read_list_from_md() -> anyhow::Result<List> {
+pub fn read_list_from_md() -> anyhow::Result<List> {
     let path = PathBuf::from("./TSK.md");
     if !path.exists() {
         return Err(anyhow::format_err!(
@@ -59,7 +60,7 @@ fn read_list_from_md() -> anyhow::Result<List> {
     List::parse_from_md(&raw_string)
 }
 
-fn save_list_to_disk(list: &List) -> anyhow::Result<()> {
+pub fn save_list_to_disk(list: &List) -> anyhow::Result<()> {
     let path = PathBuf::from("./TSK.md");
     let mut output = File::create(path)?;
     Ok(write!(output, "{}", list.save_to_md())?)
@@ -115,7 +116,7 @@ fn run_cli(command: &Commands) -> anyhow::Result<()> {
 }
 
 fn run_tui() -> anyhow::Result<()> {
-    Ok(())
+    Ok(ratatui::run(|terminal| App::new().run(terminal))?)
 }
 
 pub fn run() -> anyhow::Result<()> {

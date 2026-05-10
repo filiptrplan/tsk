@@ -3,6 +3,7 @@ use simply_colored::*;
 
 mod cli;
 mod list;
+mod tui;
 
 fn main() -> anyhow::Result<()> {
     if let Err(e) = run() {

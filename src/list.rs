@@ -16,7 +16,7 @@ use nom::{
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Status {
     Todo,
     Done,
@@ -37,6 +37,35 @@ pub struct TaskPatch {
     pub parent_id: Option<Option<u16>>,
     pub name: Option<String>,
     pub status: Option<Status>,
+}
+
+impl TaskPatch {
+    pub fn new(id: u16) -> Self {
+        TaskPatch {
+            id,
+            parent_id: None,
+            name: None,
+            status: None,
+        }
+    }
+    pub fn status(self, status: Status) -> Self {
+        TaskPatch {
+            status: Some(status),
+            ..self
+        }
+    }
+    pub fn name(self, name: String) -> Self {
+        TaskPatch {
+            name: Some(name),
+            ..self
+        }
+    }
+    pub fn parent_id(self, parent_id: Option<u16>) -> Self {
+        TaskPatch {
+            parent_id: Some(parent_id),
+            ..self
+        }
+    }
 }
 
 /// The whole task list contained in TSK.md
@@ -231,8 +260,24 @@ impl List {
         Ok(())
     }
 
-    pub fn list_tasks(&self) -> &[Task] {
+    pub fn all_tasks(&self) -> &[Task] {
         &self.tasks
+    }
+
+    pub fn tasks_of_parent(&self, parent_id: u16) -> Vec<Task> {
+        self.tasks
+            .iter()
+            .filter(|&x| x.parent_id == Some(parent_id))
+            .cloned()
+            .collect::<Vec<_>>()
+    }
+
+    pub fn toplevel_tasks(&self) -> Vec<Task> {
+        self.tasks
+            .iter()
+            .filter(|&x| x.parent_id.is_none())
+            .cloned()
+            .collect::<Vec<_>>()
     }
 
     pub fn modify_task(&mut self, patch: TaskPatch) -> anyhow::Result<()> {
