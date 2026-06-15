@@ -105,7 +105,10 @@ impl App {
                 Constraint::Ratio(1, 3),
             ])
             .split(frame.area());
+
         let length = self.frames.len();
+
+        // render leftmost frame
         if length > 1
             && let Some(list_frame) = self.frames.get_mut(length - 2)
         {
@@ -157,9 +160,6 @@ impl App {
         let parent_task = self.current_selected_task();
         if let Some(parent_task) = parent_task {
             let tasks = self.list.tasks_of_parent(parent_task.id);
-            if tasks.is_empty() {
-                return;
-            }
             let new_frame = ListFrame::new(task_vec_to_ids(&tasks), true);
             self.frames.push(new_frame);
             self.set_preview_frame();
@@ -217,6 +217,13 @@ impl App {
                     let patch = TaskPatch::new(task.id).status(status);
                     let _ = self.list.modify_task(patch);
                     // TODO: handle these errors gracefully?
+                    save_list_to_disk(&self.list).unwrap();
+                }
+            }
+            KeyCode::Char('d') => {
+                let task = self.current_selected_task();
+                if let Some(task) = task {
+                    let _ = self.list.remove_task(task.id);
                     save_list_to_disk(&self.list).unwrap();
                 }
             }
